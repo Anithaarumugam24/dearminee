@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import SurpriseShell from '@/components/SurpriseShell'
 import ShareModal from '@/components/ShareModal'
 import { getSurprise } from '@/utils/storage'
-import { decodeSurpriseFromLink } from '@/utils/shareCode'
+import { decodeSurpriseFromLink, encodeSurpriseForLink } from '@/utils/shareCode'
 import { getOccasion } from '@/data/occasions'
 import { getExperience } from '@/experiences'
 
@@ -14,16 +14,11 @@ export default function SurprisePage() {
 
   const code = searchParams.get('d')
 
-  // The link itself carries the surprise data, so it renders correctly on
-  // any device. If this is the device that created it, we also check
-  // localStorage — that copy includes the music file, which is too large
-  // to fit inside the link.
   const surprise = useMemo(() => {
     const fromLink = code ? decodeSurpriseFromLink(code) : null
     const fromDevice = getSurprise(slug)
 
     if (fromLink && fromDevice) {
-      // Same surprise, same device: prefer the local copy so music plays.
       return { ...fromLink, ...fromDevice, slug }
     }
     if (fromLink) return { ...fromLink, slug }
@@ -58,11 +53,10 @@ export default function SurprisePage() {
   const occasion = getOccasion(surprise.occasionId)
   const Experience = getExperience(surprise.occasionId)
 
-  // Keep the "d" param (drop only transient ones like "new") so the share
-  // link stays fully self-contained wherever it's opened from.
+  const shareCode = code || encodeSurpriseForLink(surprise)
   const shareUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}${code ? `?d=${code}` : ''}`
+      ? `${window.location.origin}${window.location.pathname}?d=${shareCode}`
       : ''
 
   return (
