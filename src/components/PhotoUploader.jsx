@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compressImage } from '@/utils/image'
 
-const MAX_PHOTOS = 6
+const MAX_PHOTOS = 4
 
 export default function PhotoUploader({ photos, onChange }) {
   const inputRef = useRef(null)
