@@ -3,7 +3,7 @@
  * stay small enough to travel inside a share link (and inside
  * localStorage) instead of raw multi-MB phone photos.
  */
-export function compressImage(file, { maxDimension = 900, quality = 0.72 } = {}) {
+export function compressImage(file, { maxDimension = 640, quality = 0.55 } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(new Error('Could not read image'))
