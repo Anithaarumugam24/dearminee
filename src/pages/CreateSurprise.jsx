@@ -77,7 +77,7 @@ export default function CreateSurprise() {
     }
 
     const code = encodeSurpriseForLink(surprise)
-    navigate(`/s/${slug}?d=${code}&new=1`)
+    navigate(`/s/${slug}?d=${encodeURIComponent(code)}&new=1`)
   }
 
   const previewData = { ...form, occasion: occasionId }
