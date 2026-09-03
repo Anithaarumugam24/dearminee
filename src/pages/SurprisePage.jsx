@@ -53,7 +53,7 @@ export default function SurprisePage() {
   const occasion = getOccasion(surprise.occasionId)
   const Experience = getExperience(surprise.occasionId)
 
-  const shareCode = code || encodeSurpriseForLink(surprise)
+   const shareCode = code || encodeSurpriseForLink(surprise).code
   const shareUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(shareCode)}`
