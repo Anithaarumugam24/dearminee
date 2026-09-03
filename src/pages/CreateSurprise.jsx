@@ -76,7 +76,12 @@ export default function CreateSurprise() {
       // surprise data travels inside it, so this isn't fatal.
     }
 
-    const code = encodeSurpriseForLink(surprise)
+   const { code, trimmed } = encodeSurpriseForLink(surprise)
+    if (trimmed) {
+      window.alert(
+        "Your photos made the link too long to share reliably, so a few were left out of the shared version. They'll still show when you open it on this device."
+      )
+    }
     navigate(`/s/${slug}?d=${encodeURIComponent(code)}&new=1`)
   }
 
