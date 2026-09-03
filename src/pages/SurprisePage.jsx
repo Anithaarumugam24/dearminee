@@ -56,7 +56,7 @@ export default function SurprisePage() {
   const shareCode = code || encodeSurpriseForLink(surprise)
   const shareUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}?d=${shareCode}`
+      ? `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(shareCode)}`
       : ''
 
   return (
