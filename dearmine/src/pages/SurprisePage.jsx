@@ -1,53 +1,96 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import SurpriseShell from '@/components/SurpriseShell'
 import ShareModal from '@/components/ShareModal'
 import { getSurprise } from '@/utils/storage'
-import { decodeSurpriseFromLink } from '@/utils/shareCode'
 import { getOccasion } from '@/data/occasions'
 import { getExperience } from '@/experiences'
+import { supabase } from '@/lib/supabase'
 
 export default function SurprisePage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const [shareOpen, setShareOpen] = useState(false)
 
-  const code = searchParams.get('d')
+  const [surprise, setSurprise] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // The link itself carries the surprise data, so it renders correctly on
-  // any device. If this is the device that created it, we also check
-  // localStorage — that copy includes the music file, which is too large
-  // to fit inside the link.
-  const surprise = useMemo(() => {
-    const fromLink = code ? decodeSurpriseFromLink(code) : null
-    const fromDevice = getSurprise(slug)
+  // Load surprise from localStorage or Supabase
+  useEffect(() => {
+    async function loadSurprise() {
+      setLoading(true)
 
-    if (fromLink && fromDevice) {
-      // Same surprise, same device: prefer the local copy so music plays.
-      return { ...fromLink, ...fromDevice, slug }
+      try {
+        // First check localStorage
+        const localSurprise = getSurprise(slug)
+
+        if (localSurprise) {
+          setSurprise(localSurprise)
+          setLoading(false)
+          return
+        }
+
+        // If not available locally, get it from Supabase
+        const { data, error } = await supabase
+          .from('surprises')
+          .select('data')
+          .eq('data->>slug', slug)
+          .maybeSingle()
+
+        if (error) {
+          console.error('Supabase fetch error:', error)
+          setSurprise(null)
+        } else {
+          setSurprise(data?.data || null)
+        }
+      } catch (error) {
+        console.error('Failed to load surprise:', error)
+        setSurprise(null)
+      } finally {
+        setLoading(false)
+      }
     }
-    if (fromLink) return { ...fromLink, slug }
-    if (fromDevice) return fromDevice
-    return null
-  }, [code, slug])
 
+    if (slug) {
+      loadSurprise()
+    }
+  }, [slug])
+
+  // Open share modal after creating a new surprise
   useEffect(() => {
     if (searchParams.get('new') === '1' && surprise) {
       setShareOpen(true)
-      searchParams.delete('new')
-      setSearchParams(searchParams, { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [surprise])
 
+      const params = new URLSearchParams(searchParams)
+      params.delete('new')
+
+      setSearchParams(params, { replace: true })
+    }
+  }, [surprise, searchParams, setSearchParams])
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-cream/60">Loading your surprise... 💌</p>
+      </div>
+    )
+  }
+
+  // Not found
   if (!surprise) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
         <span className="text-4xl">💔</span>
-        <h1 className="font-display text-2xl">This surprise couldn't be found</h1>
+
+        <h1 className="font-display text-2xl">
+          This surprise couldn't be found
+        </h1>
+
         <p className="max-w-sm text-sm text-cream/50">
           The link may be broken or incomplete. Ask them to resend it, or create your own.
         </p>
+
         <Link to="/" className="text-rose">
           Create your own surprise →
         </Link>
@@ -58,15 +101,18 @@ export default function SurprisePage() {
   const occasion = getOccasion(surprise.occasionId)
   const Experience = getExperience(surprise.occasionId)
 
-  // Keep the "d" param (drop only transient ones like "new") so the share
-  // link stays fully self-contained wherever it's opened from.
+  // Share the current surprise URL
   const shareUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}${code ? `?d=${code}` : ''}`
+      ? `${window.location.origin}${window.location.pathname}`
       : ''
 
   return (
-    <SurpriseShell themeId={surprise.theme} musicSrc={surprise.musicSrc} musicName={surprise.musicName}>
+    <SurpriseShell
+      themeId={surprise.theme}
+      musicSrc={surprise.musicSrc}
+      musicName={surprise.musicName}
+    >
       <button
         onClick={() => setShareOpen(true)}
         className="fixed right-4 top-4 z-40 rounded-full border border-white/20 bg-black/30 px-4 py-2 text-xs font-medium backdrop-blur-md"
@@ -75,7 +121,12 @@ export default function SurprisePage() {
         Share ↗
       </button>
 
-      <Experience data={{ ...surprise, occasion: surprise.occasionId }} />
+      <Experience
+        data={{
+          ...surprise,
+          occasion: surprise.occasionId,
+        }}
+      />
 
       <div className="pb-16 pt-4 text-center">
         <Link
