@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
+import { uploadToCloudinary, cloudinaryConfigured } from '@/utils/cloudinary'
 
-const MAX_AUDIO_MB = 4
+const MAX_AUDIO_MB = 10
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -31,8 +32,13 @@ export default function MusicUploader({ fileName, onChange }) {
 
     setLoading(true)
     try {
-      const dataUrl = await fileToDataUrl(file)
-      onChange(dataUrl, file.name)
+      if (cloudinaryConfigured) {
+        const url = await uploadToCloudinary(file)
+        onChange(url, file.name)
+      } else {
+        const dataUrl = await fileToDataUrl(file)
+        onChange(dataUrl, file.name)
+      }
     } catch {
       setError("Couldn't add that song. Please try a different file.")
     } finally {
@@ -76,7 +82,10 @@ export default function MusicUploader({ fileName, onChange }) {
         <p className="w-full text-xs text-rose">{error}</p>
       ) : (
         <p className="w-full text-xs text-cream/40">
-          Max {MAX_AUDIO_MB}MB · plays only on the device that created the surprise
+          Max {MAX_AUDIO_MB}MB
+          {cloudinaryConfigured
+            ? ' · will play for whoever opens the link'
+            : ' · plays only on the device that created the surprise'}
         </p>
       )}
     </div>
