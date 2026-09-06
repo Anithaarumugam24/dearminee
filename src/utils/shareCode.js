@@ -1,36 +1,22 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
 
 /**
- * The app has no backend, so a shared link can't rely on the receiver's
- * device having the same localStorage as the creator's. Instead, we pack
- * the surprise's data into the link itself (compressed + URL-safe), so
- * any device that opens the link can render it directly.
+ * The app has no traditional backend, so a shared link can't rely on the
+ * receiver's device having the same localStorage as the creator's.
+ * Instead, we pack the surprise's data into the link itself (compressed +
+ * URL-safe), so any device that opens the link can render it directly.
  *
- * Music is deliberately excluded here — audio files are too large to fit
- * in a URL, so a song stays local to the device that created the surprise.
- *
- * Photos CAN make the link very long. Extremely long links risk being
- * silently cut short by clipboard managers, messaging apps, or browsers,
- * which then fails to decode for the recipient. To guarantee the link
- * always works, we cap the encoded size and drop the last photo(s) if
- * needed until it fits.
+ * Photos and music are stored as Cloudinary URLs rather than raw files,
+ * so the whole payload stays small (a few hundred characters) regardless
+ * of how many photos or how long the song is — and music now plays for
+ * the recipient too, since it's a real hosted URL rather than a local
+ * file that only existed on the creator's device.
  */
-const SAFE_LINK_CHARS = 55000
-
 export function encodeSurpriseForLink(surprise) {
-  const { musicSrc, musicName, ...shareable } = surprise
-  let photos = shareable.photos || []
-  let trimmed = false
-
-  while (true) {
-    const json = JSON.stringify({ ...shareable, photos })
-    const code = compressToEncodedURIComponent(json)
-    if (code.length <= SAFE_LINK_CHARS || photos.length === 0) {
-      return { code, trimmed, includedPhotos: photos.length, totalPhotos: (shareable.photos || []).length }
-    }
-    photos = photos.slice(0, -1)
-    trimmed = true
-  }
+  const json = JSON.stringify(surprise)
+  const code = compressToEncodedURIComponent(json)
+  const totalPhotos = (surprise.photos || []).length
+  return { code, trimmed: false, includedPhotos: totalPhotos, totalPhotos }
 }
 
 export function decodeSurpriseFromLink(code) {
