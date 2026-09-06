@@ -1,21 +1,33 @@
 import { useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { compressImage } from '@/utils/image'
+import { uploadToCloudinary } from '@/utils/cloudinary'
 
-const MAX_PHOTOS = 4
+const MAX_PHOTOS = 6
 
 export default function PhotoUploader({ photos, onChange }) {
   const inputRef = useRef(null)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   async function handleFiles(fileList) {
     setError('')
     const files = Array.from(fileList).slice(0, MAX_PHOTOS - photos.length)
+    if (files.length === 0) return
+
+    setUploading(true)
     try {
-      const compressed = await Promise.all(files.map((f) => compressImage(f)))
-      onChange([...photos, ...compressed])
+      const urls = []
+      for (const file of files) {
+        const blob = await compressImage(file)
+        const url = await uploadToCloudinary(blob)
+        urls.push(url)
+      }
+      onChange([...photos, ...urls])
     } catch {
-      setError("Couldn't add that photo. Try a different image.")
+      setError("Couldn't upload one of your photos. Check your connection and try again.")
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -53,10 +65,11 @@ export default function PhotoUploader({ photos, onChange }) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 text-cream/50 transition-colors hover:border-gold hover:text-gold"
+            disabled={uploading}
+            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 text-cream/50 transition-colors hover:border-gold hover:text-gold disabled:opacity-50"
           >
-            <span className="text-2xl leading-none">+</span>
-            <span className="text-[11px]">Add photo</span>
+            <span className="text-2xl leading-none">{uploading ? '…' : '+'}</span>
+            <span className="text-[11px]">{uploading ? 'Uploading' : 'Add photo'}</span>
           </button>
         )}
       </div>
@@ -67,10 +80,16 @@ export default function PhotoUploader({ photos, onChange }) {
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        onChange={(e) => {
+          if (e.target.files) handleFiles(e.target.files)
+          e.target.value = ''
+        }}
       />
-      {error && <p className="mt-2 text-xs text-rose">{error}</p>}
-      <p className="mt-2 text-xs text-cream/40">Up to {MAX_PHOTOS} photos · auto-resized so your link stays shareable</p>
+      {error ? (
+        <p className="mt-2 text-xs text-rose">{error}</p>
+      ) : (
+        <p className="mt-2 text-xs text-cream/40">Up to {MAX_PHOTOS} photos · uploaded so they show for everyone</p>
+      )}
     </div>
   )
 }
