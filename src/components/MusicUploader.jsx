@@ -1,15 +1,7 @@
 import { useRef, useState } from 'react'
+import { uploadToCloudinary } from '@/utils/cloudinary'
 
-const MAX_AUDIO_MB = 4
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('read-failed'))
-    reader.readAsDataURL(file)
-  })
-}
+const MAX_AUDIO_MB = 15
 
 export default function MusicUploader({ fileName, onChange }) {
   const inputRef = useRef(null)
@@ -31,10 +23,10 @@ export default function MusicUploader({ fileName, onChange }) {
 
     setLoading(true)
     try {
-      const dataUrl = await fileToDataUrl(file)
-      onChange(dataUrl, file.name)
+      const url = await uploadToCloudinary(file)
+      onChange(url, file.name)
     } catch {
-      setError("Couldn't add that song. Please try a different file.")
+      setError("Couldn't upload that song. Check your connection and try again.")
     } finally {
       setLoading(false)
     }
@@ -48,7 +40,7 @@ export default function MusicUploader({ fileName, onChange }) {
         disabled={loading}
         className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-cream/80 hover:border-gold hover:text-gold disabled:opacity-50"
       >
-        {loading ? 'Adding song…' : fileName ? 'Change song' : '+ Add a song (optional)'}
+        {loading ? 'Uploading…' : fileName ? 'Change song' : '+ Add a song (optional)'}
       </button>
       {fileName && !loading && (
         <>
@@ -76,7 +68,7 @@ export default function MusicUploader({ fileName, onChange }) {
         <p className="w-full text-xs text-rose">{error}</p>
       ) : (
         <p className="w-full text-xs text-cream/40">
-          Max {MAX_AUDIO_MB}MB · plays only on the device that created the surprise
+          Max {MAX_AUDIO_MB}MB · now plays for the recipient too
         </p>
       )}
     </div>
