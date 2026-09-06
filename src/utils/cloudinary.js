@@ -8,10 +8,6 @@ import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/config/cloudi
  *  - music actually plays for the recipient too, not just the creator
  */
 export async function uploadToCloudinary(file) {
-  if (CLOUDINARY_CLOUD_NAME === 'uaijeekd') {
-    throw new Error('Cloudinary is not configured yet.')
-  }
-
   const formData = new FormData()
   formData.append('file', file)
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
